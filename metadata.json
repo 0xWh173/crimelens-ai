@@ -1,0 +1,7 @@
+{
+  "name": "CrimeLens AI",
+  "description": "Your Personal AI Cyber Crime Detective - Intelligent digital evidence analysis, scam detection, and cybersecurity defense",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

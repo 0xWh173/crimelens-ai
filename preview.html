@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CrimeLens AI — Production Application Preview</title>
+    <style>
+        :root {
+            --bg-color: #f2f2f7;
+            --surface-color: #ffffff;
+            --surface-subtle: #f8f9fa;
+            --text-primary: #1c1c1e;
+            --text-secondary: #8e8e93;
+            --apple-blue: #007aff;
+            --apple-red: #ff3b30;
+            --apple-green: #34c759;
+            --apple-orange: #ff9500;
+            --border-color: rgba(60, 60, 67, 0.12);
+            --card-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+            --device-border: #2c2c2e;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #000000;
+            --surface-color: #1c1c1e;
+            --surface-subtle: #2c2c2e;
+            --text-primary: #ffffff;
+            --text-secondary: #8e8e93;
+            --border-color: rgba(255, 255, 255, 0.15);
+            --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            --device-border: #3a3a3c;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #121214;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .preview-bar {
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: #1c1c1e;
+            padding: 10px 20px;
+            border-radius: 30px;
+            border: 1px solid #2c2c2e;
+        }
+
+        .preview-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #8e8e93;
+        }
+
+        .phone-frame {
+            width: 412px;
+            height: 860px;
+            background: var(--bg-color);
+            border-radius: 48px;
+            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.6), 0 0 0 12px var(--device-border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+            color: var(--text-primary);
+        }
+
+        /* Status Bar */
+        .status-bar {
+            height: 44px;
+            padding: 0 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            font-weight: 600;
+            background: var(--bg-color);
+            z-index: 10;
+        }
+
+        .dynamic-island {
+            width: 110px;
+            height: 24px;
+            background: #000;
+            border-radius: 20px;
+        }
+
+        /* App Top Bar */
+        .top-bar {
+            height: 52px;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-color);
+            border-bottom: 0.5px solid var(--border-color);
+            z-index: 10;
+        }
+
+        .app-brand {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 17px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+
+        .brand-shield {
+            width: 28px;
+            height: 28px;
+            background: var(--apple-blue);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+        }
+
+        .top-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .top-btn {
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            color: var(--text-primary);
+            padding: 4px;
+        }
+
+        /* Screen Views */
+        .screen-container {
+            flex: 1;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .screen {
+            display: none;
+            padding: 20px;
+            flex-direction: column;
+            gap: 20px;
+            min-height: 100%;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--surface-color);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: var(--card-shadow);
+            border: 0.5px solid var(--border-color);
+        }
+
+        .btn-primary {
+            width: 100%;
+            height: 52px;
+            background: var(--apple-blue);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-danger {
+            background: var(--apple-red);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--apple-blue);
+            color: var(--apple-blue);
+        }
+
+        /* Segmented Control */
+        .segmented-control {
+            display: flex;
+            background: var(--surface-subtle);
+            padding: 4px;
+            border-radius: 12px;
+            gap: 2px;
+        }
+
+        .segment-btn {
+            flex: 1;
+            padding: 8px 4px;
+            border: none;
+            background: transparent;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .segment-btn.active {
+            background: var(--surface-color);
+            color: var(--text-primary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        /* Inputs */
+        .text-input {
+            width: 100%;
+            padding: 14px;
+            border-radius: 14px;
+            border: 1px solid var(--border-color);
+            background: var(--surface-color);
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+            resize: none;
+        }
+
+        /* Bottom Nav Bar */
+        .bottom-nav {
+            height: 64px;
+            background: var(--surface-color);
+            border-top: 0.5px solid var(--border-color);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            font-size: 10px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border: none;
+            background: none;
+            flex: 1;
+        }
+
+        .nav-item.active {
+            color: var(--apple-blue);
+            font-weight: 700;
+        }
+
+        .nav-icon {
+            font-size: 20px;
+        }
+
+        /* Modals */
+        .modal-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(8px);
+            z-index: 100;
+            display: none;
+            justify-content: center;
+            align-items: flex-end;
+        }
+
+        .modal-card {
+            width: 100%;
+            background: var(--surface-color);
+            border-radius: 28px 28px 0 0;
+            padding: 24px;
+            max-height: 85%;
+            overflow-y: auto;
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Badge Pills */
+        .pill {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .pill-red { background: rgba(255,59,48,0.12); color: var(--apple-red); }
+        .pill-green { background: rgba(52,199,89,0.12); color: var(--apple-green); }
+        .pill-blue { background: rgba(0,113,227,0.12); color: var(--apple-blue); }
+
+        .time-chips {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+        }
+
+        .time-chip {
+            padding: 6px 14px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 600;
+            background: var(--surface-subtle);
+            color: var(--text-secondary);
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .time-chip.active {
+            background: var(--apple-blue);
+            color: white;
+        }
+
+        .settings-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            border-bottom: 0.5px solid var(--border-color);
+        }
+        .settings-row:last-child { border-bottom: none; }
+
+        /* Switch */
+        .switch {
+            width: 46px;
+            height: 28px;
+            background: var(--text-secondary);
+            border-radius: 14px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .switch.on { background: var(--apple-blue); }
+        .switch-knob {
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px; left: 2px;
+            transition: transform 0.2s;
+        }
+        .switch.on .switch-knob { transform: translateX(18px); }
+    </style>
+</head>
+<body>
+
+    <div class="preview-bar">
+        <span class="preview-title">CrimeLens AI — Pixel-Perfect Desktop Interactive App</span>
+    </div>
+
+    <!-- Smartphone Frame -->
+    <div class="phone-frame" id="phoneFrame">
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <span>9:41</span>
+            <div class="dynamic-island"></div>
+            <span>5G ⚡</span>
+        </div>
+
+        <!-- Top Header Bar -->
+        <div class="top-bar">
+            <div class="app-brand">
+                <div class="brand-shield">🛡️</div>
+                <span>CrimeLens</span>
+            </div>
+            <div class="top-actions">
+                <button class="top-btn" onclick="openSimulatorModal()" title="Scam Simulator Drill">▶️</button>
+                <button class="top-btn" id="themeBtn" onclick="toggleTheme()" title="Toggle Light/Dark Theme">🌙</button>
+                <button class="top-btn" onclick="switchScreen('emergency')" title="Emergency Helpline">🚨</button>
+            </div>
+        </div>
+
+        <!-- Scrollable Screen Content -->
+        <div class="screen-container">
+
+            <!-- 1. DASHBOARD SCREEN -->
+            <div class="screen active" id="screen-dashboard">
+                <div>
+                    <div style="font-size: 15px; color: var(--text-secondary);" id="timeGreeting">Good Evening,</div>
+                    <div style="font-size: 32px; font-weight: 800; letter-spacing: -0.5px;">CrimeLens AI</div>
+                </div>
+
+                <div class="card">
+                    <div style="width: 48px; height: 48px; background: rgba(0,113,227,0.12); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px;">🛡️</div>
+                    <h2 style="font-size: 24px; font-weight: 700; margin: 14px 0 6px 0;">Analyze Evidence</h2>
+                    <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.4;">Scan suspicious text messages, web links, QR codes, screenshots, or voice calls to detect fraud & financial traps.</p>
+                    <button class="btn-primary" style="margin-top: 20px;" onclick="switchScreen('analyzers')">
+                        <span>🔍</span> Start Analysis
+                    </button>
+                </div>
+
+                <div>
+                    <h3 style="font-size: 20px; font-weight: 700; margin-bottom: 12px;">Recent Analyses</h3>
+                    <div class="card" style="padding: 0;" id="recentHistoryList">
+                        <div class="settings-row" onclick="openScanDetail('Bank SMS Analysis', 'Potential Scam', '89%', '8 min ago', 'ALERT: SBI Netbanking blocked today! Update KYC immediately at http://sbi-net-kyc.top')">
+                            <div>
+                                <div style="font-weight: 600; font-size: 15px;">Bank SMS Analysis</div>
+                                <div style="font-size: 13px; color: var(--apple-red); margin-top: 2px;">● Potential Scam • 8 min ago</div>
+                            </div>
+                            <span style="color: var(--text-secondary);">›</span>
+                        </div>
+                        <div class="settings-row" onclick="openScanDetail('Website URL Check', 'Suspicious', '74%', '2 hr ago', 'http://paytm-refund-claim.xyz/login?id=98421')">
+                            <div>
+                                <div style="font-weight: 600; font-size: 15px;">Website URL Check</div>
+                                <div style="font-size: 13px; color: var(--apple-blue); margin-top: 2px;">● Suspicious • 2 hr ago</div>
+                            </div>
+                            <span style="color: var(--text-secondary);">›</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. ANALYZERS SCREEN -->
+            <div class="screen" id="screen-analyzers">
+                <div class="segmented-control">
+                    <button class="segment-btn active" onclick="setEvidenceType('Photo', this)">Photo</button>
+                    <button class="segment-btn" onclick="setEvidenceType('Link', this)">Link</button>
+                    <button class="segment-btn" onclick="setEvidenceType('QR', this)">QR</button>
+                    <button class="segment-btn" onclick="setEvidenceType('Voice', this)">Voice</button>
+                    <button class="segment-btn" onclick="setEvidenceType('Email', this)">Email</button>
+                </div>
+
+                <div class="card" style="text-align: center; padding: 24px 20px;">
+                    <div style="width: 56px; height: 56px; background: rgba(0,113,227,0.12); border-radius: 50%; margin: 0 auto; display: flex; align-items: center; justify-content: center; font-size: 24px;" id="analyzerIcon">📷</div>
+                    <h3 style="font-size: 18px; font-weight: 700; margin-top: 12px;" id="analyzerTitle">Select or Capture Screenshot</h3>
+                    <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">Real-time Google ML Kit OCR & Threat Analysis</p>
+                    
+                    <div style="display: flex; gap: 8px; margin-top: 16px;">
+                        <button class="btn-primary btn-outline" style="height: 42px; font-size: 13px;" onclick="simulateCameraScan()">📷 Camera</button>
+                        <button class="btn-primary btn-outline" style="height: 42px; font-size: 13px;" onclick="simulateGalleryPicker()">🖼️ Gallery</button>
+                    </div>
+                </div>
+
+                <textarea class="text-input" id="evidenceInputField" rows="4" placeholder="Paste extracted text, web link, SMS, or transcript..."></textarea>
+
+                <button class="btn-primary" onclick="runAiForensics()">🔍 Analyze Evidence</button>
+
+                <!-- Analysis Results Box -->
+                <div class="card" id="forensicResultsBox" style="display: none; border: 1px solid var(--apple-red);">
+                    <div style="text-align: center;">
+                        <h2 style="font-size: 28px; font-weight: 800; color: var(--text-primary);" id="resTitle">Potential Scam</h2>
+                        <div style="font-size: 22px; font-weight: 700; color: var(--apple-red); margin-top: 4px;" id="resScore">92% Scam Threat</div>
+                        <p style="font-size: 14px; color: var(--text-secondary); margin-top: 8px;" id="resSummary">High threat scam message impersonating SBI bank to harvest netbanking credentials.</p>
+                    </div>
+
+                    <hr style="border: none; border-top: 0.5px solid var(--border-color); margin: 16px 0;">
+
+                    <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px;">
+                        <div>
+                            <div style="color: var(--apple-blue); font-weight: 700;">OBSERVED EVIDENCE</div>
+                            <div id="resObserved" style="color: var(--text-primary); margin-top: 2px;">Contains urgency statement and non-HTTPS link (sbi-net-kyc.top).</div>
+                        </div>
+                        <div>
+                            <div style="color: var(--apple-red); font-weight: 700;">INFERENCE</div>
+                            <div id="resInference" style="color: var(--text-primary); margin-top: 2px;">Credential harvesting attack targeting bank customer netbanking credentials.</div>
+                        </div>
+                        <div>
+                            <div style="color: var(--text-secondary); font-weight: 700;">EXTERNAL INTELLIGENCE</div>
+                            <div id="resIntel" style="color: var(--text-primary); margin-top: 2px;">External Provider Status: Domain WHOIS registered 2 days ago in offshore registry.</div>
+                        </div>
+                        <div>
+                            <div style="color: var(--apple-green); font-weight: 700;">RECOMMENDATION</div>
+                            <div id="resRec" style="color: var(--text-primary); margin-top: 2px;">Do not click link or share OTP. Block contact and report to 1930.</div>
+                        </div>
+                    </div>
+
+                    <button class="btn-primary btn-danger" style="margin-top: 16px;" onclick="switchScreen('emergency')">Block & Report Scam</button>
+                </div>
+            </div>
+
+            <!-- 3. REPORTS SCREEN -->
+            <div class="screen" id="screen-heatmap">
+                <div>
+                    <div style="font-size: 32px; font-weight: 800; letter-spacing: -0.5px;">Reports</div>
+                    <div style="font-size: 14px; color: var(--text-secondary); margin-top: 2px;">Real-time crowd-sourced scam reports & threat density</div>
+                </div>
+
+                <button class="btn-primary" onclick="openReportModal()">➕ Report a Scam Anonymously</button>
+
+                <div>
+                    <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">TIME PERIOD</div>
+                    <div class="time-chips">
+                        <div class="time-chip active" onclick="filterReports('ALL', this)">All Time</div>
+                        <div class="time-chip" onclick="filterReports('TODAY', this)">Today</div>
+                        <div class="time-chip" onclick="filterReports('WEEK', this)">Last 7 Days</div>
+                        <div class="time-chip" onclick="filterReports('MONTH', this)">Last 30 Days</div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 10px;">Threat Density</h3>
+                    <div class="time-chips" id="threatDensityList">
+                        <div class="card" style="min-width: 140px; padding: 14px;">
+                            <div style="font-weight: 700; font-size: 16px;">Mumbai</div>
+                            <div style="color: var(--apple-red); font-size: 11px; font-weight: 700; margin-top: 2px;">High Risk</div>
+                            <div style="font-size: 14px; font-weight: 700; margin-top: 8px;">14 Reports</div>
+                            <div style="font-size: 11px; color: var(--text-secondary);">Bank Scam</div>
+                        </div>
+                        <div class="card" style="min-width: 140px; padding: 14px;">
+                            <div style="font-weight: 700; font-size: 16px;">Bengaluru</div>
+                            <div style="color: var(--apple-red); font-size: 11px; font-weight: 700; margin-top: 2px;">High Risk</div>
+                            <div style="font-size: 14px; font-weight: 700; margin-top: 8px;">9 Reports</div>
+                            <div style="font-size: 11px; color: var(--text-secondary);">Fake Police</div>
+                        </div>
+                        <div class="card" style="min-width: 140px; padding: 14px;">
+                            <div style="font-weight: 700; font-size: 16px;">Delhi NCR</div>
+                            <div style="color: var(--apple-orange); font-size: 11px; font-weight: 700; margin-top: 2px;">Moderate Risk</div>
+                            <div style="font-size: 14px; font-weight: 700; margin-top: 8px;">6 Reports</div>
+                            <div style="font-size: 11px; color: var(--text-secondary);">Job Scam</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 10px;">Recent Live Reports</h3>
+                    <div class="card" style="padding: 0;" id="communityReportsFeed">
+                        <div style="padding: 16px; border-bottom: 0.5px solid var(--border-color);">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                <div>
+                                    <div style="font-weight: 700; font-size: 16px;">Fake SBI Account Block SMS</div>
+                                    <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">Mumbai • Bank Scam • Just now</div>
+                                </div>
+                                <span class="pill pill-red">✓ Verified</span>
+                            </div>
+                            <p style="font-size: 14px; margin-top: 8px; line-height: 1.4;">Received SMS stating netbanking blocked today. Update KYC at sbi-net-kyc.top</p>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
+                                <span style="font-size: 12px; color: var(--text-secondary);">Verified Pattern</span>
+                                <button class="pill pill-blue" style="border: none; cursor: pointer;" onclick="upvoteReport(this)">👍 <span class="count">142</span></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. LEARN SCREEN -->
+            <div class="screen" id="screen-learning">
+                <div>
+                    <div style="font-size: 32px; font-weight: 800; letter-spacing: -0.5px;">Learn</div>
+                    <div style="font-size: 14px; color: var(--text-secondary); margin-top: 2px;">Scam awareness guides and interactive quizzes</div>
+                </div>
+
+                <div class="card" style="display: flex; align-items: center; gap: 16px;">
+                    <div style="width: 48px; height: 48px; background: rgba(0,113,227,0.12); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px;">🛡️</div>
+                    <div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">Security Rank Progress</div>
+                        <div style="font-size: 20px; font-weight: 700;" id="xpDisplay">120 XP Earned</div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 10px;">Achievements</h3>
+                    <div class="card" style="padding: 0;">
+                        <div class="settings-row">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <span style="font-size: 20px;">🔍</span>
+                                <div>
+                                    <div style="font-weight: 700; font-size: 15px;">Scam Hunter</div>
+                                    <div style="font-size: 13px; color: var(--text-secondary);">Analyze your first evidence</div>
+                                </div>
+                            </div>
+                            <span style="color: var(--apple-green); font-size: 18px;">✓</span>
+                        </div>
+                        <div class="settings-row">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <span style="font-size: 20px;">🛡️</span>
+                                <div>
+                                    <div style="font-weight: 700; font-size: 15px;">Fraud Fighter</div>
+                                    <div style="font-size: 13px; color: var(--text-secondary);">Submit a community report</div>
+                                </div>
+                            </div>
+                            <span style="color: var(--apple-green); font-size: 18px;">✓</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 10px;">Guides & Quizzes</h3>
+                    <div class="card">
+                        <h4 style="font-size: 18px; font-weight: 700;">UPI & QR Code Traps</h4>
+                        <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">Master how UPI PIN works and spot QR refund scams</p>
+                        <div style="background: var(--surface-subtle); padding: 12px; border-radius: 12px; margin: 12px 0; font-size: 13px; line-height: 1.4;">
+                            GOLDEN RULE: You NEVER enter your UPI PIN to RECEIVE money. Entering your UPI PIN ALWAYS DEDUCTS money from your bank account.
+                        </div>
+                        <button class="btn-primary" onclick="startQuizModal()">Take Quiz (+50 XP)</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. SETTINGS / PROFILE SCREEN -->
+            <div class="screen" id="screen-profile">
+                <div style="font-size: 32px; font-weight: 800; letter-spacing: -0.5px;">Settings</div>
+
+                <div class="card" style="display: flex; align-items: center; gap: 16px;">
+                    <div style="width: 56px; height: 56px; background: rgba(0,113,227,0.12); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 26px;">👤</div>
+                    <div>
+                        <div style="font-size: 18px; font-weight: 700;">CrimeLens Shield</div>
+                        <div style="color: var(--apple-green); font-weight: 600; font-size: 14px;">Status: Active Protection</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">Real-Time Backend Connected</div>
+                    </div>
+                </div>
+
+                <div>
+                    <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">PREFERENCES</div>
+                    <div class="card" style="padding: 0;">
+                        <div class="settings-row">
+                            <div>
+                                <div style="font-weight: 600; font-size: 15px;">Appearance</div>
+                                <div style="font-size: 13px; color: var(--text-secondary);" id="themeStatusText">Light Theme</div>
+                            </div>
+                            <div class="switch" id="themeSwitch" onclick="toggleTheme()">
+                                <div class="switch-knob"></div>
+                            </div>
+                        </div>
+                        <div class="settings-row" onclick="openSimulatorModal()" style="cursor: pointer;">
+                            <div>
+                                <div style="font-weight: 600; font-size: 15px;">Scam Simulator</div>
+                                <div style="font-size: 13px; color: var(--text-secondary);">Test call & SMS drill scenarios</div>
+                            </div>
+                            <span style="color: var(--text-secondary);">›</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <div style="font-size: 11px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">NOTIFICATIONS</div>
+                    <div class="card" style="padding: 0;">
+                        <div class="settings-row">
+                            <div>
+                                <div style="font-weight: 600; font-size: 15px;">Real-Time Protection</div>
+                                <div style="font-size: 13px; color: var(--text-secondary);">Instant warnings on suspicious links</div>
+                            </div>
+                            <div class="switch on" onclick="this.classList.toggle('on')">
+                                <div class="switch-knob"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. EMERGENCY SCREEN -->
+            <div class="screen" id="screen-emergency">
+                <div>
+                    <div style="font-size: 32px; font-weight: 800; letter-spacing: -0.5px;">Emergency</div>
+                    <div style="font-size: 14px; color: var(--text-secondary); margin-top: 2px;">Helplines and immediate protection protocol</div>
+                </div>
+
+                <button class="btn-primary btn-danger" onclick="alert('Simulating direct phone dialer: 1930')">
+                    <span>📞</span> Call National Helpline 1930
+                </button>
+
+                <div>
+                    <h3 style="font-size: 18px; font-weight: 700; margin-bottom: 10px;">Bank Helplines</h3>
+                    <div class="card" style="padding: 0;">
+                        <div class="settings-row">
+                            <div>
+                                <div style="font-weight: 700; font-size: 15px;">State Bank of India (SBI)</div>
+                                <div style="font-size: 13px; color: var(--apple-blue);">1800 1234</div>
+                            </div>
+                            <button class="pill pill-blue" style="border: none; cursor: pointer;" onclick="alert('Dialing 1800 1234')">Call</button>
+                        </div>
+                        <div class="settings-row">
+                            <div>
+                                <div style="font-weight: 700; font-size: 15px;">HDFC Bank Cyber Security</div>
+                                <div style="font-size: 13px; color: var(--apple-blue);">1800 2026 161</div>
+                            </div>
+                            <button class="pill pill-blue" style="border: none; cursor: pointer;" onclick="alert('Dialing 1800 2026 161')">Call</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Bottom Navigation Bar -->
+        <div class="bottom-nav">
+            <button class="nav-item active" id="nav-dashboard" onclick="switchScreen('dashboard')">
+                <span class="nav-icon">🏠</span>
+                <span>Home</span>
+            </button>
+            <button class="nav-item" id="nav-analyzers" onclick="switchScreen('analyzers')">
+                <span class="nav-icon">🔍</span>
+                <span>Analyze</span>
+            </button>
+            <button class="nav-item" id="nav-heatmap" onclick="switchScreen('heatmap')">
+                <span class="nav-icon">📊</span>
+                <span>Reports</span>
+            </button>
+            <button class="nav-item" id="nav-learning" onclick="switchScreen('learning')">
+                <span class="nav-icon">📚</span>
+                <span>Learn</span>
+            </button>
+            <button class="nav-item" id="nav-profile" onclick="switchScreen('profile')">
+                <span class="nav-icon">👤</span>
+                <span>Settings</span>
+            </button>
+        </div>
+
+        <!-- Modals -->
+        <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+            <div class="modal-card" id="modalContent" onclick="event.stopPropagation()">
+                <!-- Dynamic Modal Injected Here -->
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Screen Navigation
+        function switchScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+            const targetScreen = document.getElementById('screen-' + screenId);
+            const targetNav = document.getElementById('nav-' + screenId);
+            if (targetScreen) targetScreen.classList.add('active');
+            if (targetNav) targetNav.classList.add('active');
+        }
+
+        // Theme Toggle
+        function toggleTheme() {
+            const frame = document.getElementById('phoneFrame');
+            const themeBtn = document.getElementById('themeBtn');
+            const themeSwitch = document.getElementById('themeSwitch');
+            const themeStatusText = document.getElementById('themeStatusText');
+
+            const isDark = frame.getAttribute('data-theme') === 'dark';
+            if (isDark) {
+                frame.removeAttribute('data-theme');
+                themeBtn.textContent = '🌙';
+                if (themeSwitch) themeSwitch.classList.remove('on');
+                if (themeStatusText) themeStatusText.textContent = 'Light Theme';
+            } else {
+                frame.setAttribute('data-theme', 'dark');
+                themeBtn.textContent = '☀️';
+                if (themeSwitch) themeSwitch.classList.add('on');
+                if (themeStatusText) themeStatusText.textContent = 'Dark Theme';
+            }
+        }
+
+        // Segmented Control in Analyzers
+        function setEvidenceType(type, btn) {
+            document.querySelectorAll('.segment-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const icon = document.getElementById('analyzerIcon');
+            const title = document.getElementById('analyzerTitle');
+            const input = document.getElementById('evidenceInputField');
+
+            if (type === 'Photo') {
+                icon.textContent = '📷';
+                title.textContent = 'Select or Capture Screenshot';
+                input.placeholder = 'OCR extracted text or paste message content...';
+            } else if (type === 'Link') {
+                icon.textContent = '🔗';
+                title.textContent = 'Analyze Web Link / Domain';
+                input.placeholder = 'Enter website link (e.g. http://sbi-net-kyc.top)...';
+            } else if (type === 'QR') {
+                icon.textContent = '📱';
+                title.textContent = 'Scan QR Code Payload';
+                input.placeholder = 'Scanned QR decoded payload or UPI string...';
+            } else if (type === 'Voice') {
+                icon.textContent = '🎙️';
+                title.textContent = 'Record Audio / Call Transcript';
+                input.placeholder = 'Recorded speech transcript or caller dialogue...';
+            } else if (type === 'Email') {
+                icon.textContent = '✉️';
+                title.textContent = 'Analyze Email Headers & Content';
+                input.placeholder = 'Paste email body, header, or sender address...';
+            }
+        }
+
+        function simulateCameraScan() {
+            document.getElementById('evidenceInputField').value = "ALERT: SBI Netbanking blocked today. Update KYC at http://sbi-net-kyc.top";
+        }
+
+        function simulateGalleryPicker() {
+            document.getElementById('evidenceInputField').value = "WhatsApp Job Offer: Earn ₹3,000 daily liking videos. Contact @parttime_hr_india";
+        }
+
+        function runAiForensics() {
+            const input = document.getElementById('evidenceInputField').value.trim();
+            const box = document.getElementById('forensicResultsBox');
+            if (!input) { alert('Please enter evidence content!'); return; }
+
+            box.style.display = 'block';
+            if (input.includes('sbi') || input.includes('kyc') || input.includes('top') || input.includes('pin') || input.includes('job')) {
+                document.getElementById('resTitle').textContent = 'Potential Scam';
+                document.getElementById('resScore').textContent = '92% Scam Threat';
+                document.getElementById('resSummary').textContent = 'High risk scam message detected with brand impersonation and urgency indicators.';
+            } else {
+                document.getElementById('resTitle').textContent = 'Safe';
+                document.getElementById('resScore').textContent = '12% Low Threat';
+                document.getElementById('resScore').style.color = 'var(--apple-green)';
+                document.getElementById('resSummary').textContent = 'Standard digital content scan executed with no severe anomalies.';
+            }
+        }
+
+        // Upvote
+        function upvoteReport(btn) {
+            const countSpan = btn.querySelector('.count');
+            countSpan.textContent = parseInt(countSpan.textContent) + 1;
+        }
+
+        // Time Filters
+        function filterReports(type, chip) {
+            document.querySelectorAll('.time-chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+        }
+
+        // Modals
+        function openScanDetail(title, status, score, time, content) {
+            const overlay = document.getElementById('modalOverlay');
+            const contentDiv = document.getElementById('modalContent');
+            contentDiv.innerHTML = `
+                <h2 style="font-size: 22px; font-weight: 700;">${title}</h2>
+                <div style="font-size: 14px; color: var(--apple-red); font-weight: 600;">${status} • ${score} Threat</div>
+                <div style="background: var(--surface-subtle); padding: 14px; border-radius: 14px; font-size: 13px;">${content}</div>
+                <button class="btn-primary" onclick="closeModalDirect()">Close</button>
+            `;
+            overlay.style.display = 'flex';
+        }
+
+        function openReportModal() {
+            const overlay = document.getElementById('modalOverlay');
+            const contentDiv = document.getElementById('modalContent');
+            contentDiv.innerHTML = `
+                <h2 style="font-size: 22px; font-weight: 700;">Report a Scam Anonymously</h2>
+                <input class="text-input" id="repTitle" placeholder="Title (e.g. Fake SBI SMS)">
+                <input class="text-input" id="repCity" placeholder="City (e.g. Mumbai)">
+                <textarea class="text-input" id="repDesc" rows="3" placeholder="Scam details..."></textarea>
+                <button class="btn-primary" onclick="submitReportModal()">Submit Report</button>
+            `;
+            overlay.style.display = 'flex';
+        }
+
+        function submitReportModal() {
+            const title = document.getElementById('repTitle').value;
+            const city = document.getElementById('repCity').value || 'General';
+            const desc = document.getElementById('repDesc').value;
+            if (!title || !desc) { alert('Please enter title and details'); return; }
+
+            const feed = document.getElementById('communityReportsFeed');
+            feed.innerHTML = `
+                <div style="padding: 16px; border-bottom: 0.5px solid var(--border-color);">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div>
+                            <div style="font-weight: 700; font-size: 16px;">${title}</div>
+                            <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">${city} • Digital Scam • Just now</div>
+                        </div>
+                        <span class="pill pill-red">✓ Verified</span>
+                    </div>
+                    <p style="font-size: 14px; margin-top: 8px; line-height: 1.4;">${desc}</p>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
+                        <span style="font-size: 12px; color: var(--text-secondary);">Verified Pattern</span>
+                        <button class="pill pill-blue" style="border: none; cursor: pointer;" onclick="upvoteReport(this)">👍 <span class="count">1</span></button>
+                    </div>
+                </div>
+            ` + feed.innerHTML;
+
+            closeModalDirect();
+            alert('Report submitted successfully to real-time backend!');
+        }
+
+        function openSimulatorModal() {
+            const overlay = document.getElementById('modalOverlay');
+            const contentDiv = document.getElementById('modalContent');
+            contentDiv.innerHTML = `
+                <h2 style="font-size: 22px; font-weight: 700;">Scam Simulator Drill</h2>
+                <div style="font-size: 14px; color: var(--apple-red); font-weight: 600;">INCOMING CALL: Fake Police Digital Arrest</div>
+                <div style="background: var(--surface-subtle); padding: 14px; border-radius: 14px; font-size: 13px; line-height: 1.4;">
+                    "Inspector Sharma - Mumbai Crime Branch: Your Aadhaar is linked to a seized parcel with drugs. Pay ₹50,000 via UPI or officers will arrest you in 30 minutes!"
+                </div>
+                <button class="btn-primary btn-danger" onclick="alert('🚨 CRITICAL SCAM INTERCEPT: Real police never conduct digital arrests over video call!')">Pay ₹50,000 via UPI</button>
+                <button class="btn-primary" onclick="alert('🛡️ CrimeLens AI Intercepted Fake Police Impersonation. Recommended action: Disconnect and call 1930')">Run CrimeLens AI Check</button>
+                <button class="btn-primary btn-outline" onclick="closeModalDirect()">Close</button>
+            `;
+            overlay.style.display = 'flex';
+        }
+
+        function startQuizModal() {
+            const overlay = document.getElementById('modalOverlay');
+            const contentDiv = document.getElementById('modalContent');
+            contentDiv.innerHTML = `
+                <h2 style="font-size: 22px; font-weight: 700;">UPI & QR Scam Quiz</h2>
+                <p style="font-size: 14px; font-weight: 600;">Question: Someone sends you a QR code claiming 'Scan to receive ₹1,000 refund'. What happens if you enter your UPI PIN?</p>
+                <button class="btn-primary btn-outline" style="text-align: left; justify-content: flex-start;" onclick="finishQuiz(false)">A. ₹1,000 is credited to your bank account</button>
+                <button class="btn-primary btn-outline" style="text-align: left; justify-content: flex-start;" onclick="finishQuiz(true)">B. ₹1,000 is DEDUCTED from your account</button>
+                <button class="btn-primary btn-outline" style="text-align: left; justify-content: flex-start;" onclick="finishQuiz(false)">C. Nothing happens</button>
+            `;
+            overlay.style.display = 'flex';
+        }
+
+        function finishQuiz(isCorrect) {
+            if (isCorrect) {
+                alert('Correct! Entering your UPI PIN ALWAYS deducts money. +50 XP Earned!');
+                document.getElementById('xpDisplay').textContent = '170 XP Earned';
+            } else {
+                alert('Incorrect! Entering your UPI PIN ALWAYS deducts money from your account.');
+            }
+            closeModalDirect();
+        }
+
+        function closeModal(event) {
+            if (event.target === document.getElementById('modalOverlay')) {
+                closeModalDirect();
+            }
+        }
+
+        function closeModalDirect() {
+            document.getElementById('modalOverlay').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

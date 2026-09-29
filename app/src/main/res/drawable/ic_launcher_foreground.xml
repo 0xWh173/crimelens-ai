@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Security Shield Outline -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M54,22 L78,31 C78,56 68,72 54,82 C40,72 30,56 30,31 Z"
+        android:strokeWidth="3.5"
+        android:strokeColor="#8B5CF6" />
+    
+    <!-- Shield Fill Glow -->
+    <path
+        android:fillColor="#1D183A"
+        android:pathData="M54,25 L75,33 C75,54 66,69 54,78 C42,69 33,54 33,33 Z" />
+
+    <!-- Magnifying Cyber Lens -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M48,42 A11,11 0 1,1 48,64 A11,11 0 1,1 48,42 Z"
+        android:strokeWidth="3.5"
+        android:strokeColor="#00E5FF" />
+    
+    <!-- Lens Handle -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M56,58 L68,70"
+        android:strokeWidth="4"
+        android:strokeColor="#00E5FF"
+        android:strokeLineCap="round" />
+
+    <!-- Detective AI Eye Spark -->
+    <path
+        android:fillColor="#00E5FF"
+        android:pathData="M48,50 A3,3 0 1,1 48,56 A3,3 0 1,1 48,50 Z" />
+</vector>
+
