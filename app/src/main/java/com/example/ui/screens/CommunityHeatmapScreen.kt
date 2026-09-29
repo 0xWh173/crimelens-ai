@@ -387,7 +387,7 @@ fun AppleCommunityReportRow(
                     text = report.scamTitle,
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold).adaptive(),
                     color = MaterialTheme.colorScheme.onSurface,
-                    wrapText = true
+                    softWrap = true
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
@@ -422,7 +422,7 @@ fun AppleCommunityReportRow(
             text = report.description,
             style = MaterialTheme.typography.bodyLarge.adaptive(),
             color = MaterialTheme.colorScheme.onSurface,
-            wrapText = true
+            softWrap = true
         )
 
         Spacer(modifier = Modifier.height(12.dp))
