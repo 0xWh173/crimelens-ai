@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "327107259218",
+    "project_id": "crimelens-ai-99fbf",
+    "storage_bucket": "crimelens-ai-99fbf.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:327107259218:android:a1de437faa71f088e3e88b",
+        "android_client_info": {
+          "package_name": "com.aistudio.crimelensai.detec"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCPI8W7WaiVrhuJ6DBlPFvT5dhxGDY_nuw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -2,6 +2,7 @@ package com.example
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -17,6 +18,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.ui.components.AuthDialog
 import com.example.ui.components.CrimeLensBottomNavBar
 import com.example.ui.components.CrimeLensTopBar
 import com.example.ui.components.ScamSimulatorDialog
@@ -51,6 +53,10 @@ class MainActivity : ComponentActivity() {
 fun CrimeLensApp(viewModel: MainViewModel) {
     var currentRoute by remember { mutableStateOf(ScreenRoute.DASHBOARD.route) }
 
+    BackHandler(enabled = currentRoute != ScreenRoute.DASHBOARD.route) {
+        currentRoute = ScreenRoute.DASHBOARD.route
+    }
+
     val scanHistory by viewModel.scanHistory.collectAsStateWithLifecycle()
     val scanCount by viewModel.scanCount.collectAsStateWithLifecycle()
     val highRiskCount by viewModel.highRiskCount.collectAsStateWithLifecycle()
@@ -58,11 +64,15 @@ fun CrimeLensApp(viewModel: MainViewModel) {
     val threatDensity by viewModel.threatDensity.collectAsStateWithLifecycle()
     val timeFilter by viewModel.timeFilter.collectAsStateWithLifecycle()
     val achievements by viewModel.achievements.collectAsStateWithLifecycle()
+    val evidenceList by viewModel.evidenceItems.collectAsStateWithLifecycle()
+    val analysisLogs by viewModel.analysisLogs.collectAsStateWithLifecycle()
     val analysisState by viewModel.analysisState.collectAsStateWithLifecycle()
     val selectedScanDetail by viewModel.selectedScanDetail.collectAsStateWithLifecycle()
     val userPoints by viewModel.userPoints.collectAsStateWithLifecycle()
     val isDarkTheme by viewModel.isDarkTheme.collectAsStateWithLifecycle()
     val showSimulatorDialog by viewModel.showSimulatorDialog.collectAsStateWithLifecycle()
+    val authUser by viewModel.authUser.collectAsStateWithLifecycle()
+    val showAuthDialog by viewModel.showAuthDialog.collectAsStateWithLifecycle()
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -70,6 +80,8 @@ fun CrimeLensApp(viewModel: MainViewModel) {
             CrimeLensTopBar(
                 currentRoute = currentRoute,
                 isDarkTheme = isDarkTheme,
+                authUser = authUser,
+                onAuthClick = { viewModel.openAuthDialog() },
                 onToggleTheme = { viewModel.toggleTheme() },
                 onEmergencyClick = { currentRoute = ScreenRoute.EMERGENCY.route },
                 onOpenSimulator = { viewModel.openSimulator() }
@@ -105,7 +117,7 @@ fun CrimeLensApp(viewModel: MainViewModel) {
                     ScreenRoute.ANALYZERS.route -> {
                         AnalyzersScreen(
                             analysisState = analysisState,
-                            onAnalyze = { type, content, b64 -> viewModel.analyzeEvidence(type, content, b64) },
+                            onAnalyze = { type, content, b64, filePath -> viewModel.analyzeEvidence(type, content, b64, filePath) },
                             onResetState = { viewModel.resetAnalysisState() },
                             onTriggerEmergencyMode = { currentRoute = ScreenRoute.EMERGENCY.route },
                             onOpenSimulator = { viewModel.openSimulator() }
@@ -119,8 +131,8 @@ fun CrimeLensApp(viewModel: MainViewModel) {
                             selectedTimeFilter = timeFilter,
                             onSelectTimeFilter = { filter -> viewModel.setTimeFilter(filter) },
                             onUpvoteReport = { id -> viewModel.upvoteReport(id) },
-                            onSubmitReport = { title, cat, city, desc ->
-                                viewModel.submitCommunityReport(title, cat, city, desc)
+                            onSubmitReport = { title, cat, city, desc, imageBase64 ->
+                                viewModel.submitCommunityReport(title, cat, city, desc, imageBase64 = imageBase64)
                             }
                         )
                     }
@@ -138,6 +150,13 @@ fun CrimeLensApp(viewModel: MainViewModel) {
                         ProfileScreen(
                             userPoints = userPoints,
                             scanCount = scanCount,
+                            evidenceList = evidenceList,
+                            analysisLogs = analysisLogs,
+                            authUser = authUser,
+                            onOpenAuth = { viewModel.openAuthDialog() },
+                            onSignOut = { viewModel.signOut() },
+                            onDeleteEvidence = { id -> viewModel.deleteEvidenceItem(id) },
+                            onDeleteLog = { id -> viewModel.deleteAnalysisLog(id) },
                             isDarkTheme = isDarkTheme,
                             onToggleTheme = { viewModel.toggleTheme() },
                             onNavigateEmergency = { currentRoute = ScreenRoute.EMERGENCY.route },
@@ -165,6 +184,15 @@ fun CrimeLensApp(viewModel: MainViewModel) {
                         viewModel.closeSimulator()
                         currentRoute = ScreenRoute.EMERGENCY.route
                     }
+                )
+            }
+
+            if (showAuthDialog) {
+                AuthDialog(
+                    onDismiss = { viewModel.closeAuthDialog() },
+                    onSignIn = { email, pass, onResult -> viewModel.signIn(email, pass, onResult) },
+                    onRegister = { email, pass, name, onResult -> viewModel.register(email, pass, name, onResult) },
+                    onAnonymousSignIn = { onResult -> viewModel.signInAnonymously(onResult) }
                 )
             }
         }

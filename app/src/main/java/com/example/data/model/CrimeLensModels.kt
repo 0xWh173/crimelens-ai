@@ -56,7 +56,11 @@ data class CommunityReport(
     val verifiedScam: Boolean = true,
     val riskLevel: String = "HIGH",
     val severity: String = "HIGH",
-    val source: String = "Community Report"
+    val source: String = "Community Report",
+    val imageBase64: String? = null,
+    val imageUrl: String? = null,
+    val reporterName: String = "Investigator",
+    val reporterId: String = ""
 )
 
 data class CityHeatData(

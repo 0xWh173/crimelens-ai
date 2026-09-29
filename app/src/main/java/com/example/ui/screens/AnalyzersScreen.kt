@@ -7,6 +7,10 @@ import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
+import android.util.Base64
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.FileOutputStream
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -35,6 +39,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Collections
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Link
@@ -51,6 +56,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -70,6 +76,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -79,6 +86,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.example.data.model.EvidenceType
 import com.example.data.model.ScamAnalysisResult
+import com.example.ui.components.CameraEvidenceCaptureDialog
 import com.example.ui.theme.AppleBlue
 import com.example.ui.theme.AppleGreen
 import com.example.ui.theme.AppleOrange
@@ -95,7 +103,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun AnalyzersScreen(
     analysisState: AnalysisState,
-    onAnalyze: (EvidenceType, String, String?) -> Unit,
+    onAnalyze: (EvidenceType, String, String?, String?) -> Unit,
     onResetState: () -> Unit,
     onTriggerEmergencyMode: () -> Unit,
     onOpenSimulator: () -> Unit = {}
@@ -224,16 +232,36 @@ fun AnalyzersScreen(
 @Composable
 fun AnalyzerInputForm(
     evidenceType: EvidenceType,
-    onAnalyze: (EvidenceType, String, String?) -> Unit
+    onAnalyze: (EvidenceType, String, String?, String?) -> Unit
 ) {
     var inputText by remember(evidenceType) { mutableStateOf("") }
     var capturedBitmap by remember(evidenceType) { mutableStateOf<Bitmap?>(null) }
+    var capturedBase64 by remember(evidenceType) { mutableStateOf<String?>(null) }
+    var capturedFilePath by remember(evidenceType) { mutableStateOf<String?>(null) }
+    var showCameraXDialog by remember(evidenceType) { mutableStateOf(false) }
     var mlKitStatus by remember(evidenceType) { mutableStateOf<String?>(null) }
     var isProcessingMLKit by remember(evidenceType) { mutableStateOf(false) }
 
     val context = LocalContext.current
     val hapticHelper = rememberHapticFeedbackHelper()
     val coroutineScope = rememberCoroutineScope()
+
+    if (showCameraXDialog) {
+        CameraEvidenceCaptureDialog(
+            onDismiss = { showCameraXDialog = false },
+            onEvidenceCaptured = { bitmap, base64, extractedText, filePath ->
+                capturedBitmap = bitmap
+                capturedBase64 = base64
+                capturedFilePath = filePath
+                if (extractedText.isNotBlank()) {
+                    inputText = extractedText
+                }
+                mlKitStatus = "CameraX: Evidence captured & forensic hash logged"
+                hapticHelper.trigger(HapticFeedbackStyle.CONFIRM_SUCCESS)
+                showCameraXDialog = false
+            }
+        )
+    }
 
     val voiceHelper = remember(context) { VoiceRecorderHelper(context) }
     val isRecordingVoice by voiceHelper.isRecording.collectAsState()
@@ -252,6 +280,23 @@ fun AnalyzerInputForm(
         isProcessingMLKit = true
         mlKitStatus = "Analyzing with Google ML Kit..."
         hapticHelper.trigger(HapticFeedbackStyle.KEYBOARD_PRESS)
+
+        // Generate base64 and cached file path in real time
+        try {
+            val stream = ByteArrayOutputStream()
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 85, stream)
+            val bytes = stream.toByteArray()
+            capturedBase64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+
+            val cacheFile = File(context.cacheDir, "evidence_${System.currentTimeMillis()}.jpg")
+            val fileOut = FileOutputStream(cacheFile)
+            fileOut.write(bytes)
+            fileOut.flush()
+            fileOut.close()
+            capturedFilePath = cacheFile.absolutePath
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
 
         coroutineScope.launch {
             try {
@@ -357,13 +402,39 @@ fun AnalyzerInputForm(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     if (capturedBitmap != null) {
-                        Image(
-                            bitmap = capturedBitmap!!.asImageBitmap(),
-                            contentDescription = "Captured Photo",
+                        Box(
                             modifier = Modifier
-                                .size(110.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                        )
+                                .size(130.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                        ) {
+                            Image(
+                                bitmap = capturedBitmap!!.asImageBitmap(),
+                                contentDescription = "Captured Photo",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                            IconButton(
+                                onClick = {
+                                    capturedBitmap = null
+                                    capturedBase64 = null
+                                    capturedFilePath = null
+                                    mlKitStatus = "Evidence photo cleared"
+                                },
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(4.dp)
+                                    .size(28.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.Black.copy(alpha = 0.65f))
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Close,
+                                    contentDescription = "Remove photo",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
                         Spacer(modifier = Modifier.height(10.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
@@ -374,7 +445,7 @@ fun AnalyzerInputForm(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = if (isProcessingMLKit) "ML Kit Extracting..." else "Google ML Kit Processed",
+                                text = if (isProcessingMLKit) "ML Kit Extracting..." else "Real-time Evidence Attached",
                                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold).adaptive(),
                                 color = if (isProcessingMLKit) AppleOrange else AppleGreen
                             )
@@ -503,68 +574,99 @@ fun AnalyzerInputForm(
                         }
 
                     } else if (evidenceType == EvidenceType.SCREENSHOT || evidenceType == EvidenceType.QR_CODE) {
-                        // Camera & Gallery action buttons
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        // CameraX Primary Forensic Action & Secondary Photo / Gallery options
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            OutlinedButton(
+                            Button(
                                 onClick = {
                                     hapticHelper.trigger(HapticFeedbackStyle.KEYBOARD_PRESS)
-                                    val hasPermission = ContextCompat.checkSelfPermission(
-                                        context,
-                                        Manifest.permission.CAMERA
-                                    ) == PackageManager.PERMISSION_GRANTED
-
-                                    if (hasPermission) {
-                                        cameraLauncher.launch(null)
-                                    } else {
-                                        cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-                                    }
+                                    showCameraXDialog = true
                                 },
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .heightIn(min = 44.dp)
-                                    .testTag("camera_scan_btn"),
+                                    .fillMaxWidth()
+                                    .heightIn(min = 46.dp)
+                                    .testTag("camerax_scanner_btn"),
+                                colors = ButtonDefaults.buttonColors(containerColor = AppleBlue),
                                 shape = RoundedCornerShape(12.dp)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Outlined.CameraAlt,
-                                    contentDescription = "Camera",
-                                    tint = AppleBlue,
-                                    modifier = Modifier.size(16.dp)
+                                    imageVector = Icons.Outlined.PhotoCamera,
+                                    contentDescription = "CameraX Scanner",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(18.dp)
                                 )
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "Camera",
-                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold).adaptive(),
-                                    color = AppleBlue
+                                    text = "Open CameraX Forensic Lens",
+                                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold).adaptive(),
+                                    color = Color.White
                                 )
                             }
 
-                            OutlinedButton(
-                                onClick = {
-                                    hapticHelper.trigger(HapticFeedbackStyle.KEYBOARD_PRESS)
-                                    galleryLauncher.launch("image/*")
-                                },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .heightIn(min = 44.dp)
-                                    .testTag("gallery_picker_btn"),
-                                shape = RoundedCornerShape(12.dp)
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                modifier = Modifier.fillMaxWidth()
                             ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Collections,
-                                    contentDescription = "Gallery",
-                                    tint = AppleBlue,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "Gallery",
-                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold).adaptive(),
-                                    color = AppleBlue
-                                )
+                                OutlinedButton(
+                                    onClick = {
+                                        hapticHelper.trigger(HapticFeedbackStyle.KEYBOARD_PRESS)
+                                        val hasPermission = ContextCompat.checkSelfPermission(
+                                            context,
+                                            Manifest.permission.CAMERA
+                                        ) == PackageManager.PERMISSION_GRANTED
+
+                                        if (hasPermission) {
+                                            cameraLauncher.launch(null)
+                                        } else {
+                                            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .heightIn(min = 42.dp)
+                                        .testTag("camera_scan_btn"),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.CameraAlt,
+                                        contentDescription = "Quick Photo",
+                                        tint = AppleBlue,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "Quick Photo",
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold).adaptive(),
+                                        color = AppleBlue
+                                    )
+                                }
+
+                                OutlinedButton(
+                                    onClick = {
+                                        hapticHelper.trigger(HapticFeedbackStyle.KEYBOARD_PRESS)
+                                        galleryLauncher.launch("image/*")
+                                    },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .heightIn(min = 42.dp)
+                                        .testTag("gallery_picker_btn"),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Collections,
+                                        contentDescription = "Gallery",
+                                        tint = AppleBlue,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "Gallery",
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold).adaptive(),
+                                        color = AppleBlue
+                                    )
+                                }
                             }
                         }
                     }
@@ -611,15 +713,15 @@ fun AnalyzerInputForm(
             Button(
                 onClick = {
                     hapticHelper.trigger(HapticFeedbackStyle.LONG_PRESS)
-                    if (inputText.isNotBlank()) {
-                        onAnalyze(evidenceType, inputText, null)
+                    if (inputText.isNotBlank() || capturedBase64 != null) {
+                        onAnalyze(evidenceType, inputText, capturedBase64, capturedFilePath)
                     }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = 52.dp)
                     .testTag("run_ai_detective_btn"),
-                enabled = inputText.isNotBlank(),
+                enabled = inputText.isNotBlank() || capturedBase64 != null,
                 colors = ButtonDefaults.buttonColors(containerColor = AppleBlue),
                 shape = RoundedCornerShape(14.dp)
             ) {

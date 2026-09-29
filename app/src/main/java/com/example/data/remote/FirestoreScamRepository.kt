@@ -51,6 +51,10 @@ class FirestoreScamRepository : ScamReportRepository {
                             val risk = doc.getString("riskLevel") ?: "HIGH"
                             val severity = doc.getString("severity") ?: "HIGH"
                             val source = doc.getString("source") ?: "User Report"
+                            val imageBase64 = doc.getString("imageBase64")
+                            val imageUrl = doc.getString("imageUrl")
+                            val reporterName = doc.getString("reporterName") ?: "Investigator"
+                            val reporterId = doc.getString("reporterId") ?: ""
 
                             val category = try { ScamCategory.valueOf(categoryStr) } catch (e: Exception) { ScamCategory.UNKNOWN }
 
@@ -65,7 +69,11 @@ class FirestoreScamRepository : ScamReportRepository {
                                 verifiedScam = verified,
                                 riskLevel = risk,
                                 severity = severity,
-                                source = source
+                                source = source,
+                                imageBase64 = imageBase64,
+                                imageUrl = imageUrl,
+                                reporterName = reporterName,
+                                reporterId = reporterId
                             )
                         } catch (e: Exception) {
                             null
@@ -95,7 +103,11 @@ class FirestoreScamRepository : ScamReportRepository {
                 "verifiedScam" to report.verifiedScam,
                 "riskLevel" to report.riskLevel,
                 "severity" to report.severity,
-                "source" to report.source
+                "source" to report.source,
+                "imageBase64" to (report.imageBase64 ?: ""),
+                "imageUrl" to (report.imageUrl ?: ""),
+                "reporterName" to report.reporterName,
+                "reporterId" to report.reporterId
             )
             db.collection("CommunityReports").document(report.id).set(docData)
         } catch (e: Exception) {

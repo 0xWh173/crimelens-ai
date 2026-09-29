@@ -6,10 +6,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -30,6 +33,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -43,7 +47,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.model.AuthUser
 import com.example.ui.theme.AppleBlue
+import com.example.ui.theme.AppleGreen
 import com.example.ui.theme.AppleRed
 import com.example.ui.theme.adaptive
 
@@ -60,106 +66,156 @@ enum class ScreenRoute(val route: String, val label: String, val icon: ImageVect
 fun CrimeLensTopBar(
     currentRoute: String,
     isDarkTheme: Boolean = false,
+    authUser: AuthUser? = null,
+    onAuthClick: (() -> Unit)? = null,
     onToggleTheme: () -> Unit = {},
     onEmergencyClick: () -> Unit = {},
     onOpenSimulator: () -> Unit = {}
 ) {
     val haptic = LocalHapticFeedback.current
-    // Ultra-clean Apple top status header
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background)
+    Surface(
+        color = MaterialTheme.colorScheme.background,
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .statusBarsPadding()
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(28.dp)
-                        .clip(CircleShape)
-                        .background(AppleBlue),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Shield,
-                        contentDescription = "CrimeLens AI",
-                        tint = Color.White,
-                        modifier = Modifier.size(16.dp)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(AppleBlue),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Shield,
+                            contentDescription = "CrimeLens AI",
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "CrimeLens",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = (-0.3).sp,
+                            fontSize = 18.sp.adaptive()
+                        ),
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                 }
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "CrimeLens",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = (-0.3).sp,
-                        fontSize = 17.sp.adaptive()
-                    ),
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-            }
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(
-                    onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        onOpenSimulator()
-                    },
-                    modifier = Modifier
-                        .size(36.dp)
-                        .testTag("simulator_header_btn")
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Outlined.PlayCircle,
-                        contentDescription = "Simulate",
-                        tint = AppleBlue,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-                IconButton(
-                    onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        onToggleTheme()
-                    },
-                    modifier = Modifier
-                        .size(36.dp)
-                        .testTag("theme_toggle_btn")
-                ) {
-                    Icon(
-                        imageVector = if (isDarkTheme) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
-                        contentDescription = "Toggle Theme",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-                IconButton(
-                    onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onEmergencyClick()
-                    },
-                    modifier = Modifier
-                        .size(36.dp)
-                        .testTag("emergency_header_btn")
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Warning,
-                        contentDescription = "Emergency",
-                        tint = AppleRed,
-                        modifier = Modifier.size(20.dp)
-                    )
+                    if (onAuthClick != null) {
+                        IconButton(
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                onAuthClick()
+                            },
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (authUser?.isAuthenticated == true) AppleGreen.copy(alpha = 0.15f)
+                                    else AppleBlue.copy(alpha = 0.12f)
+                                )
+                                .testTag("topbar_auth_btn")
+                        ) {
+                            if (authUser?.isAuthenticated == true) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(
+                                        text = (authUser.displayName?.firstOrNull() ?: authUser.email?.firstOrNull() ?: 'U').uppercase(),
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold).adaptive(),
+                                        color = AppleGreen
+                                    )
+                                }
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Outlined.Person,
+                                    contentDescription = "Sign In / Register",
+                                    tint = AppleBlue,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    IconButton(
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onOpenSimulator()
+                        },
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(CircleShape)
+                            .background(AppleBlue.copy(alpha = 0.12f))
+                            .testTag("simulator_header_btn")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.PlayCircle,
+                            contentDescription = "Simulate",
+                            tint = AppleBlue,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    IconButton(
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onToggleTheme()
+                        },
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                            .testTag("theme_toggle_btn")
+                    ) {
+                        Icon(
+                            imageVector = if (isDarkTheme) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
+                            contentDescription = "Toggle Theme",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    IconButton(
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onEmergencyClick()
+                        },
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(CircleShape)
+                            .background(AppleRed.copy(alpha = 0.14f))
+                            .testTag("emergency_header_btn")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Warning,
+                            contentDescription = "Emergency",
+                            tint = AppleRed,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
             }
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                thickness = 0.5.dp
+            )
         }
-        HorizontalDivider(
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-            thickness = 0.5.dp
-        )
     }
 }
 
@@ -177,50 +233,58 @@ fun CrimeLensBottomNavBar(
         ScreenRoute.PROFILE
     )
 
-    Column(
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
         modifier = Modifier.fillMaxWidth()
     ) {
-        HorizontalDivider(
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
-            thickness = 0.5.dp
-        )
-        NavigationBar(
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.onSurface,
-            tonalElevation = 0.dp,
-            modifier = Modifier.height(64.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
         ) {
-            navItems.forEach { screen ->
-                val isSelected = currentRoute == screen.route
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                thickness = 0.5.dp
+            )
+            NavigationBar(
+                containerColor = Color.Transparent,
+                contentColor = MaterialTheme.colorScheme.onSurface,
+                tonalElevation = 0.dp,
+                windowInsets = WindowInsets(0, 0, 0, 0),
+                modifier = Modifier.height(58.dp)
+            ) {
+                navItems.forEach { screen ->
+                    val isSelected = currentRoute == screen.route
 
-                NavigationBarItem(
-                    selected = isSelected,
-                    onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onNavigate(screen)
-                    },
-                    icon = {
-                        Icon(
-                            imageVector = screen.icon,
-                            contentDescription = screen.label,
-                            tint = if (isSelected) AppleBlue else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(22.dp)
+                    NavigationBarItem(
+                        selected = isSelected,
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onNavigate(screen)
+                        },
+                        icon = {
+                            Icon(
+                                imageVector = screen.icon,
+                                contentDescription = screen.label,
+                                tint = if (isSelected) AppleBlue else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        },
+                        label = {
+                            Text(
+                                text = screen.label,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 10.sp.adaptive(),
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                ),
+                                color = if (isSelected) AppleBlue else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        colors = NavigationBarItemDefaults.colors(
+                            indicatorColor = Color.Transparent
                         )
-                    },
-                    label = {
-                        Text(
-                            text = screen.label,
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 10.sp.adaptive(),
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                            ),
-                            color = if (isSelected) AppleBlue else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    },
-                    colors = NavigationBarItemDefaults.colors(
-                        indicatorColor = Color.Transparent
                     )
-                )
+                }
             }
         }
     }

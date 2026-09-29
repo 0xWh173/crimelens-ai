@@ -95,7 +95,7 @@ class CrimeLensScreenshotsTest {
                     selectedTimeFilter = TimeUtils.TimeFilter.ALL_TIME,
                     onSelectTimeFilter = {},
                     onUpvoteReport = {},
-                    onSubmitReport = { _, _, _, _ -> }
+                    onSubmitReport = { _, _, _, _, _ -> }
                 )
             }
         }

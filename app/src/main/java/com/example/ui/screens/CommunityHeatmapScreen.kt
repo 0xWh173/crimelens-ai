@@ -1,5 +1,15 @@
 package com.example.ui.screens
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.ImageDecoder
+import android.net.Uri
+import android.os.Build
+import android.provider.MediaStore
+import android.util.Base64
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -24,7 +34,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Collections
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -38,7 +51,9 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -52,11 +67,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import java.io.ByteArrayOutputStream
 import com.example.data.model.CityHeatData
 import com.example.data.model.CommunityReport
 import com.example.data.model.ScamCategory
@@ -74,7 +94,7 @@ fun CommunityHeatmapScreen(
     selectedTimeFilter: TimeUtils.TimeFilter,
     onSelectTimeFilter: (TimeUtils.TimeFilter) -> Unit,
     onUpvoteReport: (String) -> Unit,
-    onSubmitReport: (String, ScamCategory, String, String) -> Unit
+    onSubmitReport: (String, ScamCategory, String, String, String?) -> Unit
 ) {
     var showReportDialog by remember { mutableStateOf(false) }
 
@@ -315,8 +335,8 @@ fun CommunityHeatmapScreen(
     if (showReportDialog) {
         AnonymousReportDialog(
             onDismiss = { showReportDialog = false },
-            onSubmit = { title, cat, city, desc ->
-                onSubmitReport(title, cat, city, desc)
+            onSubmit = { title, cat, city, desc, imageBase64 ->
+                onSubmitReport(title, cat, city, desc, imageBase64)
                 showReportDialog = false
             }
         )
@@ -390,8 +410,9 @@ fun AppleCommunityReportRow(
                     softWrap = true
                 )
                 Spacer(modifier = Modifier.height(4.dp))
+                val authorInfo = if (report.reporterName.isNotBlank() && report.reporterName != "Investigator") " • By ${report.reporterName}" else ""
                 Text(
-                    text = "${report.locationCity.ifBlank { "General" }} • ${report.category.displayName} • $timeAgo",
+                    text = "${report.locationCity.ifBlank { "General" }} • ${report.category.displayName}$authorInfo • $timeAgo",
                     style = MaterialTheme.typography.bodyMedium.adaptive(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -424,6 +445,41 @@ fun AppleCommunityReportRow(
             color = MaterialTheme.colorScheme.onSurface,
             softWrap = true
         )
+
+        // Real-time Evidence Image rendering (Base64 or Cloud URL)
+        if (!report.imageBase64.isNullOrBlank()) {
+            val bitmap = remember(report.imageBase64) {
+                try {
+                    val decodedBytes = Base64.decode(report.imageBase64, Base64.DEFAULT)
+                    BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
+                } catch (e: Exception) {
+                    null
+                }
+            }
+            if (bitmap != null) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Image(
+                    bitmap = bitmap.asImageBitmap(),
+                    contentDescription = "Evidence Screenshot Attachment",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 220.dp)
+                        .clip(RoundedCornerShape(12.dp)),
+                    contentScale = ContentScale.Crop
+                )
+            }
+        } else if (!report.imageUrl.isNullOrBlank()) {
+            Spacer(modifier = Modifier.height(10.dp))
+            AsyncImage(
+                model = report.imageUrl,
+                contentDescription = "Evidence Photo Attachment",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 220.dp)
+                    .clip(RoundedCornerShape(12.dp)),
+                contentScale = ContentScale.Crop
+            )
+        }
 
         Spacer(modifier = Modifier.height(12.dp))
 
@@ -469,13 +525,68 @@ private fun Modifier.wrapText(wrap: Boolean = true): Modifier = this
 @Composable
 fun AnonymousReportDialog(
     onDismiss: () -> Unit,
-    onSubmit: (String, ScamCategory, String, String) -> Unit
+    onSubmit: (String, ScamCategory, String, String, String?) -> Unit
 ) {
+    val context = LocalContext.current
     var title by remember { mutableStateOf("") }
     var city by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf(ScamCategory.BANK_IMPERSONATION) }
     var expandedDropdown by remember { mutableStateOf(false) }
+
+    var attachedBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var attachedBase64 by remember { mutableStateOf<String?>(null) }
+
+    fun processBitmap(bitmap: Bitmap) {
+        // Scale down if very large to optimize real-time cloud sync
+        val maxDim = 1024
+        val scaled = if (bitmap.width > maxDim || bitmap.height > maxDim) {
+            val ratio = bitmap.width.toFloat() / bitmap.height.toFloat()
+            val (targetW, targetH) = if (ratio > 1) {
+                maxDim to (maxDim / ratio).toInt()
+            } else {
+                (maxDim * ratio).toInt() to maxDim
+            }
+            Bitmap.createScaledBitmap(bitmap, targetW, targetH, true)
+        } else {
+            bitmap
+        }
+        attachedBitmap = scaled
+        try {
+            val stream = ByteArrayOutputStream()
+            scaled.compress(Bitmap.CompressFormat.JPEG, 75, stream)
+            val bytes = stream.toByteArray()
+            attachedBase64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap: Bitmap? ->
+        if (bitmap != null) {
+            processBitmap(bitmap)
+        }
+    }
+
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            try {
+                val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    ImageDecoder.decodeBitmap(ImageDecoder.createSource(context.contentResolver, uri))
+                } else {
+                    @Suppress("DEPRECATION")
+                    MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
+                }
+                processBitmap(bitmap)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -568,16 +679,85 @@ fun AnonymousReportDialog(
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 100.dp, max = 160.dp),
+                        .heightIn(min = 90.dp, max = 140.dp),
                     shape = RoundedCornerShape(12.dp)
                 )
+
+                // Real-time Evidence Image Attachment
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "REAL-TIME EVIDENCE IMAGE",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp).adaptive(),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    if (attachedBitmap != null) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(120.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                        ) {
+                            Image(
+                                bitmap = attachedBitmap!!.asImageBitmap(),
+                                contentDescription = "Attached Evidence",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                            IconButton(
+                                onClick = {
+                                    attachedBitmap = null
+                                    attachedBase64 = null
+                                },
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(6.dp)
+                                    .size(28.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.Black.copy(alpha = 0.65f))
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Delete,
+                                    contentDescription = "Remove photo",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                    } else {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            OutlinedButton(
+                                onClick = { cameraLauncher.launch(null) },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Icon(Icons.Outlined.CameraAlt, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Camera", style = MaterialTheme.typography.labelMedium.adaptive())
+                            }
+                            OutlinedButton(
+                                onClick = { galleryLauncher.launch("image/*") },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Icon(Icons.Outlined.Collections, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Gallery", style = MaterialTheme.typography.labelMedium.adaptive())
+                            }
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
             Button(
                 onClick = {
                     if (title.isNotBlank() && description.isNotBlank()) {
-                        onSubmit(title, selectedCategory, city.ifBlank { "General" }, description)
+                        onSubmit(title, selectedCategory, city.ifBlank { "General" }, description, attachedBase64)
                     }
                 },
                 enabled = title.isNotBlank() && description.isNotBlank(),

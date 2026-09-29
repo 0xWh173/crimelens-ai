@@ -412,6 +412,141 @@
                     </button>
                 </div>
 
+                <!-- Recharts / D3 Style AI Analytics & Summary Dashboard Charts -->
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h3 style="font-size: 20px; font-weight: 700;">AI Evidence Analytics</h3>
+                        <div class="time-chips" style="gap: 4px;">
+                            <div class="time-chip active" style="padding: 4px 10px; font-size: 11px;" onclick="updateChartTimeframe('7D', this)">7 Days</div>
+                            <div class="time-chip" style="padding: 4px 10px; font-size: 11px;" onclick="updateChartTimeframe('30D', this)">30 Days</div>
+                            <div class="time-chip" style="padding: 4px 10px; font-size: 11px;" onclick="updateChartTimeframe('ALL', this)">All Time</div>
+                        </div>
+                    </div>
+
+                    <!-- Chart Card 1: Area Trend Curve (Recharts / D3 Area Chart) -->
+                    <div class="card" style="padding: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                            <div>
+                                <div style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">EVIDENCE INCIDENT TRENDS</div>
+                                <div style="font-size: 22px; font-weight: 800; margin-top: 2px;" id="totalDossiersCount">1,482 Analyzed</div>
+                            </div>
+                            <span class="pill pill-blue" style="font-size: 11px;">📈 +14.2% this week</span>
+                        </div>
+
+                        <!-- SVG D3 / Recharts Multi-line Area Chart -->
+                        <div style="width: 100%; height: 130px; position: relative;">
+                            <svg viewBox="0 0 350 110" style="width: 100%; height: 100%; overflow: visible;" id="trendChartSvg">
+                                <defs>
+                                    <linearGradient id="areaGradientRed" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stop-color="#ff3b30" stop-opacity="0.35"/>
+                                        <stop offset="100%" stop-color="#ff3b30" stop-opacity="0.0"/>
+                                    </linearGradient>
+                                    <linearGradient id="areaGradientBlue" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stop-color="#007aff" stop-opacity="0.35"/>
+                                        <stop offset="100%" stop-color="#007aff" stop-opacity="0.0"/>
+                                    </linearGradient>
+                                </defs>
+
+                                <!-- Grid Lines -->
+                                <line x1="0" y1="20" x2="350" y2="20" stroke="var(--border-color)" stroke-dasharray="3,3" />
+                                <line x1="0" y1="55" x2="350" y2="55" stroke="var(--border-color)" stroke-dasharray="3,3" />
+                                <line x1="0" y1="90" x2="350" y2="90" stroke="var(--border-color)" stroke-dasharray="3,3" />
+
+                                <!-- Area Fill 1: High Risk Threats -->
+                                <path id="trendAreaRed" d="M0,90 Q50,40 100,65 T200,30 T300,45 T350,15 L350,90 L0,90 Z" fill="url(#areaGradientRed)"/>
+                                <path id="trendLineRed" d="M0,90 Q50,40 100,65 T200,30 T300,45 T350,15" fill="none" stroke="#ff3b30" stroke-width="3" stroke-linecap="round"/>
+
+                                <!-- Area Fill 2: Moderate/Safe Scans -->
+                                <path id="trendAreaBlue" d="M0,90 Q50,75 100,80 T200,55 T300,70 T350,40 L350,90 L0,90 Z" fill="url(#areaGradientBlue)"/>
+                                <path id="trendLineBlue" d="M0,90 Q50,75 100,80 T200,55 T300,70 T350,40" fill="none" stroke="#007aff" stroke-width="2.5" stroke-dasharray="4,2" stroke-linecap="round"/>
+
+                                <!-- Data Dots -->
+                                <circle cx="100" cy="65" r="4" fill="#ff3b30"/>
+                                <circle cx="200" cy="30" r="4" fill="#ff3b30"/>
+                                <circle cx="350" cy="15" r="5" fill="#ff3b30" stroke="#fff" stroke-width="2"/>
+                            </svg>
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-secondary); margin-top: 6px;">
+                            <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+                        </div>
+
+                        <div style="display: flex; gap: 16px; margin-top: 12px; padding-top: 10px; border-top: 0.5px solid var(--border-color); font-size: 12px;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <div style="width: 10px; height: 10px; background: var(--apple-red); border-radius: 50%;"></div>
+                                <span>High Risk Scams (64%)</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <div style="width: 10px; height: 10px; background: var(--apple-blue); border-radius: 50%;"></div>
+                                <span>Safe / Low Risk (36%)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chart Card 2: AI Category Breakdown Donut & Horizontal Bars -->
+                    <div class="card" style="margin-top: 12px; padding: 16px;">
+                        <div style="font-size: 12px; color: var(--text-secondary); font-weight: 600; margin-bottom: 10px;">ANALYZED EVIDENCE BY CATEGORY</div>
+                        
+                        <div style="display: flex; align-items: center; gap: 16px;">
+                            <!-- D3 Style SVG Donut Chart -->
+                            <div style="width: 90px; height: 90px; flex-shrink: 0; position: relative;">
+                                <svg viewBox="0 0 42 42" style="width: 100%; height: 100%; transform: rotate(-90deg);">
+                                    <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="var(--surface-subtle)" stroke-width="5.5"></circle>
+                                    <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#ff3b30" stroke-width="5.5" stroke-dasharray="38 62" stroke-dashoffset="0"></circle>
+                                    <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#007aff" stroke-width="5.5" stroke-dasharray="28 72" stroke-dashoffset="-38"></circle>
+                                    <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#ff9500" stroke-width="5.5" stroke-dasharray="16 84" stroke-dashoffset="-66"></circle>
+                                    <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#af52de" stroke-width="5.5" stroke-dasharray="12 88" stroke-dashoffset="-82"></circle>
+                                    <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#34c759" stroke-width="5.5" stroke-dasharray="6 94" stroke-dashoffset="-94"></circle>
+                                </svg>
+                                <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 14px; font-weight: 800;">
+                                    <span>96%</span>
+                                    <span style="font-size: 8px; color: var(--text-secondary); font-weight: 600;">PRECISION</span>
+                                </div>
+                            </div>
+
+                            <!-- Horizontal Category Bars -->
+                            <div style="flex: 1; display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
+                                <div>
+                                    <div style="display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 2px;">
+                                        <span>🏦 Bank & KYC Fraud</span>
+                                        <span style="color: #ff3b30;">38%</span>
+                                    </div>
+                                    <div style="height: 5px; background: var(--surface-subtle); border-radius: 4px; overflow: hidden;">
+                                        <div style="width: 38%; height: 100%; background: #ff3b30;"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div style="display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 2px;">
+                                        <span>🔗 Phishing Links</span>
+                                        <span style="color: #007aff;">28%</span>
+                                    </div>
+                                    <div style="height: 5px; background: var(--surface-subtle); border-radius: 4px; overflow: hidden;">
+                                        <div style="width: 28%; height: 100%; background: #007aff;"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div style="display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 2px;">
+                                        <span>⚖️ Digital Arrest</span>
+                                        <span style="color: #ff9500;">16%</span>
+                                    </div>
+                                    <div style="height: 5px; background: var(--surface-subtle); border-radius: 4px; overflow: hidden;">
+                                        <div style="width: 16%; height: 100%; background: #ff9500;"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div style="display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 2px;">
+                                        <span>💼 Job Scams</span>
+                                        <span style="color: #af52de;">12%</span>
+                                    </div>
+                                    <div style="height: 5px; background: var(--surface-subtle); border-radius: 4px; overflow: hidden;">
+                                        <div style="width: 12%; height: 100%; background: #af52de;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div>
                     <h3 style="font-size: 20px; font-weight: 700; margin-bottom: 12px;">Recent Analyses</h3>
                     <div class="card" style="padding: 0;" id="recentHistoryList">
@@ -690,6 +825,70 @@
                         </div>
                     </div>
                 </div>
+            <!-- 7. EVIDENCE GALLERY SCREEN -->
+            <div class="screen" id="screen-gallery">
+                <div>
+                    <div style="font-size: 32px; font-weight: 800; letter-spacing: -0.5px;">Evidence Gallery</div>
+                    <div style="font-size: 14px; color: var(--text-secondary); margin-top: 2px;">Captured crime screenshots & payloads from Firestore</div>
+                </div>
+
+                <!-- Gallery Search & Category Filters -->
+                <input class="text-input" id="gallerySearchInput" placeholder="🔍 Search evidence, snippet or category..." oninput="filterGalleryItems()">
+
+                <div class="time-chips" style="gap: 6px; overflow-x: auto; padding-bottom: 4px;">
+                    <div class="time-chip active" onclick="filterGalleryCategory('ALL', this)">All Evidence</div>
+                    <div class="time-chip" onclick="filterGalleryCategory('CRITICAL', this)">🚨 Critical (85%+)</div>
+                    <div class="time-chip" onclick="filterGalleryCategory('BANK', this)">🏦 Bank Scam</div>
+                    <div class="time-chip" onclick="filterGalleryCategory('QR', this)">📱 QR Trap</div>
+                    <div class="time-chip" onclick="filterGalleryCategory('ARREST', this)">⚖️ Digital Arrest</div>
+                </div>
+
+                <!-- Captured Crime Evidence Grid (2 Column Layout) -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px;" id="galleryGrid">
+                    <!-- Item 1: Fake SBI SMS -->
+                    <div class="card gallery-item" data-category="BANK" data-threat="94" style="padding: 10px; cursor: pointer;" onclick="openGalleryLightbox('Fake SBI Netbanking SMS', 'Bank Scam', '94% Critical Threat', 'Sep 29, 2026, 17:42', 'fs_doc_9481a', 'Mumbai, MH • 19.0760, 72.8777', 'ALERT: Netbanking blocked. Update KYC at http://sbi-net-kyc.top immediately.', '📲')">
+                        <div style="width: 100%; height: 95px; background: rgba(255,59,48,0.12); border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;">
+                            <span style="font-size: 26px;">📲</span>
+                            <span class="pill pill-red" style="font-size: 10px; margin-top: 4px; padding: 2px 6px;">94% Critical</span>
+                        </div>
+                        <div style="font-weight: 700; font-size: 13px; margin-top: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Fake SBI Netbanking SMS</div>
+                        <div style="font-size: 10px; color: var(--text-secondary); margin-top: 2px;">Sep 29, 2026, 17:42</div>
+                        <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">ALERT: Netbanking blocked. Update KYC at http://sbi-net-kyc.top immediately.</div>
+                    </div>
+
+                    <!-- Item 2: Digital Arrest Notice -->
+                    <div class="card gallery-item" data-category="ARREST" data-threat="98" style="padding: 10px; cursor: pointer;" onclick="openGalleryLightbox('Fake Police Digital Arrest', 'Digital Arrest', '98% Critical Threat', 'Sep 29, 2026, 14:15', 'fs_doc_8829b', 'Delhi NCR • 28.6139, 77.2090', 'Mumbai Crime Branch: Seized illegal parcel under your Aadhaar. Pay ₹50,000 fine via UPI.', '⚖️')">
+                        <div style="width: 100%; height: 95px; background: rgba(255,59,48,0.12); border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;">
+                            <span style="font-size: 26px;">⚖️</span>
+                            <span class="pill pill-red" style="font-size: 10px; margin-top: 4px; padding: 2px 6px;">98% Critical</span>
+                        </div>
+                        <div style="font-weight: 700; font-size: 13px; margin-top: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Fake Police Digital Arrest</div>
+                        <div style="font-size: 10px; color: var(--text-secondary); margin-top: 2px;">Sep 29, 2026, 14:15</div>
+                        <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">Seized illegal parcel under your Aadhaar. Pay ₹50,000 fine via UPI immediately.</div>
+                    </div>
+
+                    <!-- Item 3: Paytm QR Refund Trap -->
+                    <div class="card gallery-item" data-category="QR" data-threat="88" style="padding: 10px; cursor: pointer;" onclick="openGalleryLightbox('Paytm Refund QR Code Trap', 'QR Trap', '88% High Risk', 'Sep 28, 2026, 09:30', 'fs_doc_7311c', 'Bengaluru, KA • 12.9716, 77.5946', 'upi://pay?pa=refund_desk@upi&am=2500 - Scan to receive refund. Enter UPI PIN to confirm.', '📷')">
+                        <div style="width: 100%; height: 95px; background: rgba(255,149,0,0.12); border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;">
+                            <span style="font-size: 26px;">📷</span>
+                            <span class="pill pill-orange" style="font-size: 10px; margin-top: 4px; padding: 2px 6px;">88% High Risk</span>
+                        </div>
+                        <div style="font-weight: 700; font-size: 13px; margin-top: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Paytm Refund QR Code</div>
+                        <div style="font-size: 10px; color: var(--text-secondary); margin-top: 2px;">Sep 28, 2026, 09:30</div>
+                        <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">upi://pay?pa=refund_desk@upi&am=2500 - Scan to receive refund. Enter PIN.</div>
+                    </div>
+
+                    <!-- Item 4: WhatsApp Job Offer -->
+                    <div class="card gallery-item" data-category="JOB" data-threat="76" style="padding: 10px; cursor: pointer;" onclick="openGalleryLightbox('WhatsApp Video Like Job', 'Job Scam', '76% Suspicious', 'Sep 27, 2026, 18:20', 'fs_doc_6190d', 'Hyderabad, TS • 17.3850, 78.4867', 'Part-time job offer: Earn ₹3,000 daily by liking YouTube videos. Telegram @parttime_hr', '💼')">
+                        <div style="width: 100%; height: 95px; background: rgba(0,122,255,0.12); border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;">
+                            <span style="font-size: 26px;">💼</span>
+                            <span class="pill pill-blue" style="font-size: 10px; margin-top: 4px; padding: 2px 6px;">76% Suspicious</span>
+                        </div>
+                        <div style="font-weight: 700; font-size: 13px; margin-top: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">WhatsApp Video Like Job</div>
+                        <div style="font-size: 10px; color: var(--text-secondary); margin-top: 2px;">Sep 27, 2026, 18:20</div>
+                        <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">Earn ₹3,000 daily by liking YouTube videos. Telegram @parttime_hr</div>
+                    </div>
+                </div>
             </div>
 
         </div>
@@ -703,6 +902,10 @@
             <button class="nav-item" id="nav-analyzers" onclick="switchScreen('analyzers')">
                 <span class="nav-icon">🔍</span>
                 <span>Analyze</span>
+            </button>
+            <button class="nav-item" id="nav-gallery" onclick="switchScreen('gallery')">
+                <span class="nav-icon">🖼️</span>
+                <span>Gallery</span>
             </button>
             <button class="nav-item" id="nav-heatmap" onclick="switchScreen('heatmap')">
                 <span class="nav-icon">📊</span>

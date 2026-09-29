@@ -20,21 +20,27 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.LightMode
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.outlined.PrivacyTip
 import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -52,14 +58,26 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.model.AnalysisLog
+import com.example.data.model.AuthUser
+import com.example.data.model.EvidenceItem
+import com.example.ui.components.EvidenceVaultDialog
 import com.example.ui.theme.AppleBlue
 import com.example.ui.theme.AppleGreen
+import com.example.ui.theme.AppleRed
 import com.example.ui.theme.adaptive
 
 @Composable
 fun ProfileScreen(
     userPoints: Int,
     scanCount: Int,
+    evidenceList: List<EvidenceItem> = emptyList(),
+    analysisLogs: List<AnalysisLog> = emptyList(),
+    authUser: AuthUser = AuthUser(),
+    onOpenAuth: () -> Unit = {},
+    onSignOut: () -> Unit = {},
+    onDeleteEvidence: (Long) -> Unit = {},
+    onDeleteLog: (Long) -> Unit = {},
     isDarkTheme: Boolean = false,
     onToggleTheme: () -> Unit = {},
     onNavigateEmergency: () -> Unit = {},
@@ -67,6 +85,17 @@ fun ProfileScreen(
 ) {
     var realTimeProtection by remember { mutableStateOf(true) }
     var smartAlerts by remember { mutableStateOf(true) }
+    var showVaultDialog by remember { mutableStateOf(false) }
+
+    if (showVaultDialog) {
+        EvidenceVaultDialog(
+            evidenceList = evidenceList,
+            analysisLogs = analysisLogs,
+            onDeleteEvidence = onDeleteEvidence,
+            onDeleteLog = onDeleteLog,
+            onDismiss = { showVaultDialog = false }
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -88,53 +117,140 @@ fun ProfileScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Dynamic Profile Card
+        // Dynamic Real-time Profile & Auth Card
         Card(
             shape = RoundedCornerShape(18.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             modifier = Modifier.fillMaxWidth().wrapContentHeight()
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(20.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(CircleShape)
-                        .background(AppleBlue.copy(alpha = 0.12f)),
-                    contentAlignment = Alignment.Center
+            Column(modifier = Modifier.padding(20.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Person,
-                        contentDescription = "User",
-                        tint = AppleBlue,
-                        modifier = Modifier.size(30.dp)
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (authUser.isAuthenticated) AppleGreen.copy(alpha = 0.15f)
+                                else AppleBlue.copy(alpha = 0.12f)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (authUser.isAuthenticated) {
+                            Text(
+                                text = (authUser.displayName?.firstOrNull() ?: authUser.email?.firstOrNull() ?: 'I').uppercase(),
+                                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold).adaptive(),
+                                color = AppleGreen
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Outlined.Person,
+                                contentDescription = "User",
+                                tint = AppleBlue,
+                                modifier = Modifier.size(30.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = if (authUser.isAuthenticated) authUser.displayLabel else "Guest Investigator",
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 19.sp
+                                ).adaptive(),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            if (authUser.isAuthenticated) {
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Icon(
+                                    imageVector = Icons.Outlined.CheckCircle,
+                                    contentDescription = "Verified",
+                                    tint = AppleGreen,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = if (authUser.isAuthenticated) "Badge: ${authUser.badgeTitle}" else "Status: Local Guest Mode",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold).adaptive(),
+                            color = if (authUser.isAuthenticated) AppleGreen else AppleBlue
+                        )
+                        Text(
+                            text = "$scanCount Evidence Checks Completed • $userPoints XP",
+                            style = MaterialTheme.typography.bodySmall.adaptive(),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
 
-                Spacer(modifier = Modifier.width(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f), thickness = 0.5.dp)
+                Spacer(modifier = Modifier.height(14.dp))
 
-                Column(modifier = Modifier.weight(1f)) {
+                if (!authUser.isAuthenticated) {
                     Text(
-                        text = "CrimeLens Shield",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 19.sp
-                        ).adaptive(),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = "Status: Active Protection",
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold).adaptive(),
-                        color = AppleGreen
-                    )
-                    Text(
-                        text = "$scanCount Evidence Checks Completed • $userPoints XP",
+                        text = "Sign in to back up your forensic evidence, unlock verified community reporting, and earn detective achievements.",
                         style = MaterialTheme.typography.bodySmall.adaptive(),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Button(
+                        onClick = onOpenAuth,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 44.dp)
+                            .testTag("profile_login_btn"),
+                        colors = ButtonDefaults.buttonColors(containerColor = AppleBlue),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Outlined.Lock, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Sign In / Create Account",
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold).adaptive(),
+                            color = Color.White
+                        )
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = authUser.email ?: "Real-time Authenticated",
+                                style = MaterialTheme.typography.bodySmall.adaptive(),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "Real-time Firebase Sync Active",
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium).adaptive(),
+                                color = AppleGreen
+                            )
+                        }
+
+                        OutlinedButton(
+                            onClick = onSignOut,
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.testTag("profile_sign_out_btn")
+                        ) {
+                            Icon(Icons.AutoMirrored.Outlined.Logout, contentDescription = null, tint = AppleRed, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Sign Out",
+                                style = MaterialTheme.typography.labelMedium.adaptive(),
+                                color = AppleRed
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -244,6 +360,41 @@ fun ProfileScreen(
                     title = "Emergency Helpline 1930",
                     subtitle = "National cyber financial fraud protocol",
                     onClick = onNavigateEmergency
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Section: LOCAL ROOM FORENSIC VAULT
+        Text(
+            text = "LOCAL ROOM FORENSIC VAULT",
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 0.5.sp
+            ).adaptive(),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 12.dp, bottom = 8.dp)
+        )
+
+        Card(
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column {
+                AppleSettingsClickableRow(
+                    icon = Icons.Outlined.Shield,
+                    title = "Evidence Locker (${evidenceList.size})",
+                    subtitle = if (evidenceList.isEmpty()) "No local evidence items recorded yet" else "${evidenceList.size} items cryptographically hashed (SHA-256)",
+                    onClick = { showVaultDialog = true }
+                )
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 16.dp))
+                AppleSettingsClickableRow(
+                    icon = Icons.Outlined.Info,
+                    title = "Forensic Analysis Logs (${analysisLogs.size})",
+                    subtitle = if (analysisLogs.isEmpty()) "No logs in Room database" else "${analysisLogs.size} logs stored on-device with threat intelligence",
+                    onClick = { showVaultDialog = true }
                 )
             }
         }

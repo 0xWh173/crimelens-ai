@@ -20,7 +20,8 @@ class GeminiRepository : ThreatIntelligenceRepository {
 
     private val apiKey: String
         get() = try {
-            BuildConfig.GEMINI_API_KEY
+            val key = BuildConfig.GEMINI_API_KEY
+            if (key.isNotBlank() && key != "your_api_key_here") key else ""
         } catch (e: Exception) {
             ""
         }

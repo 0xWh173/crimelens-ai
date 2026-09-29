@@ -1,10 +1,14 @@
 package com.example.data.repository
 
 import com.example.data.local.AchievementDao
+import com.example.data.local.AnalysisLogDao
+import com.example.data.local.EvidenceDao
 import com.example.data.local.ReportDao
 import com.example.data.local.ScanDao
+import com.example.data.model.AnalysisLog
 import com.example.data.model.CityHeatData
 import com.example.data.model.CommunityReport
+import com.example.data.model.EvidenceItem
 import com.example.data.model.EvidenceType
 import com.example.data.model.LearningModule
 import com.example.data.model.QuizQuestion
@@ -23,11 +27,14 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
+import java.security.MessageDigest
 
 class AppRepository(
     private val scanDao: ScanDao,
     private val reportDao: ReportDao,
     private val achievementDao: AchievementDao,
+    private val evidenceDao: EvidenceDao,
+    private val analysisLogDao: AnalysisLogDao,
     private val threatIntelRepo: ThreatIntelligenceRepository = GeminiRepository(),
     private val firestoreScamRepo: ScamReportRepository = FirestoreScamRepository()
 ) {
@@ -37,6 +44,13 @@ class AppRepository(
     val scanCount: Flow<Int> = scanDao.getScanCount()
     val highRiskScanCount: Flow<Int> = scanDao.getHighRiskScanCount()
     val achievements: Flow<List<UserAchievement>> = achievementDao.getAllAchievements()
+
+    // Identified evidence items and detailed forensic analysis logs in Room
+    val allEvidence: Flow<List<EvidenceItem>> = evidenceDao.getAllEvidence()
+    val evidenceCount: Flow<Int> = evidenceDao.getEvidenceCount()
+    val allAnalysisLogs: Flow<List<AnalysisLog>> = analysisLogDao.getAllLogs()
+    val highRiskAnalysisLogs: Flow<List<AnalysisLog>> = analysisLogDao.getHighRiskLogs()
+    val analysisLogCount: Flow<Int> = analysisLogDao.getLogCount()
 
     /**
      * Highly optimized real-time community reports flow.
@@ -97,11 +111,66 @@ class AppRepository(
     suspend fun analyzeEvidence(
         evidenceType: EvidenceType,
         content: String,
-        base64Image: String? = null
+        base64Image: String? = null,
+        filePath: String? = null
     ): ScamAnalysisResult {
+        val startTime = System.currentTimeMillis()
         val result = threatIntelRepo.analyzeEvidence(evidenceType, content, base64Image)
+        val durationMs = System.currentTimeMillis() - startTime
 
-        // Save scan result to Room database asynchronously
+        // Compute digital forensic SHA-256 fingerprint
+        val hash = try {
+            val md = MessageDigest.getInstance("SHA-256")
+            val inputBytes = (content + (base64Image ?: "")).toByteArray(Charsets.UTF_8)
+            md.digest(inputBytes).joinToString("") { "%02x".format(it) }
+        } catch (e: Exception) {
+            ""
+        }
+
+        // 1. Persist EvidenceItem in Room
+        val evidenceItem = EvidenceItem(
+            title = "${evidenceType.label} Evidence #${System.currentTimeMillis() % 10000}",
+            evidenceType = evidenceType,
+            filePath = filePath,
+            extractedContent = result.extractedContent.ifBlank { content },
+            mimeType = if (base64Image != null) "image/jpeg" else "text/plain",
+            fileSizeBytes = content.toByteArray().size.toLong() + (base64Image?.length ?: 0),
+            sha256Hash = hash,
+            collectedTimestamp = System.currentTimeMillis(),
+            sourceDescription = "Collected via CrimeLens ${evidenceType.label} Inspector",
+            associatedRiskScore = result.riskScore,
+            associatedCategory = result.scamCategory
+        )
+        val evidenceId = evidenceDao.insertEvidence(evidenceItem)
+
+        // 2. Persist AnalysisLog in Room
+        val threatLevel = when {
+            result.riskScore >= 80 -> "CRITICAL"
+            result.riskScore >= 60 -> "HIGH"
+            result.riskScore >= 40 -> "MODERATE"
+            else -> "LOW"
+        }
+        val analysisLog = AnalysisLog(
+            evidenceItemId = evidenceId,
+            timestamp = System.currentTimeMillis(),
+            evidenceType = evidenceType,
+            riskScore = result.riskScore,
+            scamCategory = result.scamCategory,
+            threatLevel = threatLevel,
+            primarySummary = result.primarySummary,
+            observedEvidence = result.observedEvidence,
+            inference = result.inference,
+            externalIntelligence = result.externalIntelligence,
+            recommendation = result.recommendation,
+            redFlagsJson = result.redFlags.joinToString("||"),
+            recommendationsJson = result.recommendations.joinToString("||"),
+            extractedContent = result.extractedContent,
+            engineName = "Gemini-2.5-Flash (Forensic Threat Intel)",
+            executionTimeMs = durationMs
+        )
+        analysisLogDao.insertLog(analysisLog)
+
+        // 3. Save ScanRecord for compatibility with dashboard
         val scanRecord = ScanRecord(
             title = "${evidenceType.label} Analysis",
             evidenceType = evidenceType,
@@ -119,6 +188,14 @@ class AppRepository(
         return result
     }
 
+    suspend fun insertEvidenceItem(evidence: EvidenceItem): Long = evidenceDao.insertEvidence(evidence)
+
+    suspend fun insertAnalysisLog(log: AnalysisLog): Long = analysisLogDao.insertLog(log)
+
+    suspend fun deleteEvidenceById(id: Long) = evidenceDao.deleteEvidenceById(id)
+
+    suspend fun deleteAnalysisLogById(id: Long) = analysisLogDao.deleteLogById(id)
+
     suspend fun getScanById(id: Long): ScanRecord? = scanDao.getScanById(id)
 
     suspend fun upvoteReport(reportId: String) {
@@ -130,7 +207,11 @@ class AppRepository(
         title: String,
         category: ScamCategory,
         city: String,
-        description: String
+        description: String,
+        imageBase64: String? = null,
+        imageUrl: String? = null,
+        reporterName: String = "Investigator",
+        reporterId: String = ""
     ) {
         val report = CommunityReport(
             scamTitle = title,
@@ -141,7 +222,11 @@ class AppRepository(
             upvotes = 1,
             verifiedScam = true,
             severity = "HIGH",
-            source = "User Report"
+            source = "User Report",
+            imageBase64 = imageBase64,
+            imageUrl = imageUrl,
+            reporterName = reporterName,
+            reporterId = reporterId
         )
 
         // Write directly to Firestore real-time backend
