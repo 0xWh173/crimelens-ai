@@ -27,7 +27,7 @@ import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.QrCode
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.ShieldAlert
+import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card

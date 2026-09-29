@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Assessment
+import androidx.compose.material.icons.outlined.Collections
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.LightMode
@@ -56,6 +57,7 @@ import com.example.ui.theme.adaptive
 enum class ScreenRoute(val route: String, val label: String, val icon: ImageVector) {
     DASHBOARD("dashboard", "Home", Icons.Outlined.Home),
     ANALYZERS("analyzers", "Analyze", Icons.Outlined.Search),
+    GALLERY("gallery", "Gallery", Icons.Outlined.Collections),
     HEATMAP("heatmap", "Reports", Icons.Outlined.Assessment),
     LEARNING("learning", "Learn", Icons.Outlined.MenuBook),
     PROFILE("profile", "Profile", Icons.Outlined.Person),
@@ -228,6 +230,7 @@ fun CrimeLensBottomNavBar(
     val navItems = listOf(
         ScreenRoute.DASHBOARD,
         ScreenRoute.ANALYZERS,
+        ScreenRoute.GALLERY,
         ScreenRoute.HEATMAP,
         ScreenRoute.LEARNING,
         ScreenRoute.PROFILE

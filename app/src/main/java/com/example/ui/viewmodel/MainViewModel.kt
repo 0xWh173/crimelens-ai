@@ -123,19 +123,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         // Monitor real-time report additions for notifications
         viewModelScope.launch {
-            repository.communityReports.collect { reports ->
-                if (knownReportIds.isNotEmpty()) {
-                    val newReports = reports.filter { it.id !in knownReportIds }
-                    for (newReport in newReports) {
-                        if (newReport.verifiedScam || newReport.severity.equals("HIGH", ignoreCase = true)) {
-                            CrimeLensNotificationManager.sendScamReportNotification(
-                                getApplication(),
-                                newReport
-                            )
+            try {
+                repository.communityReports.collect { reports ->
+                    try {
+                        if (knownReportIds.isNotEmpty()) {
+                            val newReports = reports.filter { it.id !in knownReportIds }
+                            for (newReport in newReports) {
+                                if (newReport.verifiedScam || newReport.severity.equals("HIGH", ignoreCase = true)) {
+                                    CrimeLensNotificationManager.sendScamReportNotification(
+                                        getApplication(),
+                                        newReport
+                                    )
+                                }
+                            }
                         }
+                        knownReportIds = reports.map { it.id }.toSet()
+                    } catch (e: Exception) {
+                        e.printStackTrace()
                     }
                 }
-                knownReportIds = reports.map { it.id }.toSet()
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }
